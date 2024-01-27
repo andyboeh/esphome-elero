@@ -1,0 +1,10 @@
+elero:
+  cs_pin: GPIO5
+  gdo0_pin: GPIO23
+
+cover:
+  - platform: elero
+    blind_address: 0xe58a31
+    channel: 0x1b
+    remote_address: 0xd0f008
+    name: "Schlafzimmer"
