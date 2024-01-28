@@ -1,5 +1,6 @@
 #include "EleroCover.h"
 #include "esphome/core/log.h"
+#include "esphome/components/elero/elero.h"
 
 namespace esphome {
 namespace elero {
@@ -11,7 +12,7 @@ void EleroCover::dump_config() {
 }
 
 void EleroCover::setup() {
-
+  this->parent_->register_cover(this);
 
 }
 
@@ -29,6 +30,10 @@ cover::CoverTraits EleroCover::get_traits() {
   traits.set_supports_toggle(true);
   traits.set_is_assumed_state(false);
   return traits;
+}
+
+void EleroCover::set_rx_state(uint8_t state) {
+  ESP_LOGD(TAG, "Got state: 0x%02x for blind 0x%02x", state, this->blind_address_);
 }
 
 void EleroCover::control(const cover::CoverCall &call) {

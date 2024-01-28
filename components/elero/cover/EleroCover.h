@@ -3,10 +3,11 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
-#include "esphome/components/elero/elero.h"
 
 namespace esphome {
 namespace elero {
+
+class Elero;
 
 class EleroCover : public cover::Cover, public Component {
  public:
@@ -22,6 +23,8 @@ class EleroCover : public cover::Cover, public Component {
   void set_channel(uint8_t channel) { this->channel_ = channel; }
   void set_remote_address(uint32_t remote) { this->remote_address_ = remote; }
   void set_name(std::string name) { this->name_ = name; }
+  uint32_t get_blind_address() { return this->blind_address_; }
+  void set_rx_state(uint8_t state);
   
  protected:
   void control(const cover::CoverCall &call) override;

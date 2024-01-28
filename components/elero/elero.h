@@ -3,13 +3,15 @@
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/spi/spi.h"
-#include "cc1101.h"
+#include "esphome/components/elero/cc1101.h"
 
 // All encryption/decryption structures copied from https://github.com/QuadCorei8085/elero_protocol/ (MIT)
 // All remote handling based on code from https://github.com/stanleypa/eleropy (GPLv3)
 
 namespace esphome {
 namespace elero {
+
+class EleroCover;
 
 class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,
                                     spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_2MHZ>,
@@ -35,6 +37,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void read_buf(uint8_t addr, uint8_t *buf, uint8_t len);
   void flush_and_rx();
   void interprete_msg();
+  void register_cover(EleroCover *cover);
   
   void set_gdo0_pin(InternalGPIOPin *pin) { gdo0_pin_ = pin; }
 
@@ -58,6 +61,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   uint8_t msg_tx_[CC1101_FIFO_LENGTH];
   InternalGPIOPin *gdo0_pin_{nullptr};
   ISRInternalGPIOPin gdo0_irq_pin_{nullptr};
+  std::map<uint32_t, EleroCover*> address_to_cover_mapping_;
 };
 
 }  // namespace elero

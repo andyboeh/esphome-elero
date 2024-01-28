@@ -1,6 +1,7 @@
 #include "elero.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/components/elero/cover/EleroCover.h"
 
 namespace esphome {
 namespace elero {
@@ -382,7 +383,20 @@ void Elero::interprete_msg() {
   if(typ == 0xca) { // Status message from a blind
     // Check if we know the blind
     // status = payload[6]
+    auto search = this->address_to_cover_mapping_.find(src);
+    if(search != this->address_to_cover_mapping_.end()) {
+      search->second->set_rx_state(payload[6]);
+    }
   }
+}
+
+void Elero::register_cover(EleroCover *cover) {
+  uint32_t address = cover->get_blind_address();
+  if(this->address_to_cover_mapping_.find(address) != this->address_to_cover_mapping_.end()) {
+    ESP_LOGE(TAG, "A blind with this address is already registered - this is currently not supported");
+    return;
+  }
+  this->address_to_cover_mapping_.insert({address, cover});
 }
 
 }  // namespace elero
