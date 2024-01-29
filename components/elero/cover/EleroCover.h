@@ -28,10 +28,13 @@ class EleroCover : public cover::Cover, public Component {
   
  protected:
   void control(const cover::CoverCall &call) override;
+  void increase_counter();
+  void send_command(uint8_t command);
 
   uint32_t blind_address_{0};
   uint32_t remote_address_{0};
   uint8_t channel_{0};
+  uint8_t counter_{1};
   std::string name_;
   Elero *parent_;
 };

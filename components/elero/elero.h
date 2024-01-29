@@ -11,6 +11,14 @@
 namespace esphome {
 namespace elero {
 
+static const uint8_t ELERO_COMMAND_COVER_CONTROL = 0x6a;
+static const uint8_t ELERO_COMMAND_COVER_CHECK = 0x00;
+static const uint8_t ELERO_COMMAND_COVER_STOP = 0x10;
+static const uint8_t ELERO_COMMAND_COVER_UP = 0x20;
+static const uint8_t ELERO_COMMAND_COVER_TILT = 0x24;
+static const uint8_t ELERO_COMMAND_COVER_DOWN = 0x40;
+static const uint8_t ELERO_COMMAND_COVER_INT = 0x44;
+
 class EleroCover;
 
 class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,
@@ -38,6 +46,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void flush_and_rx();
   void interprete_msg();
   void register_cover(EleroCover *cover);
+  void send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel);
   
   void set_gdo0_pin(InternalGPIOPin *pin) { gdo0_pin_ = pin; }
 
@@ -53,7 +62,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void encode_nibbles(uint8_t* msg);
   void decode_nibbles(uint8_t* msg, uint8_t len);
   void msg_decode(uint8_t *msg);
-  void msg_encode(uint8_t* msg, uint8_t xor0, uint8_t xor1);
+  void msg_encode(uint8_t* msg);
  
  
   bool received_{false};

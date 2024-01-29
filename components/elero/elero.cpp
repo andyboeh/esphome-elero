@@ -344,10 +344,10 @@ void Elero::msg_decode(uint8_t *msg) {
   sub_r20_from_nibbles(msg, 0xBA, 2, 8);
 }
 
-void Elero::msg_encode(uint8_t* msg, uint8_t xor0, uint8_t xor1) {
+void Elero::msg_encode(uint8_t* msg) {
   calc_parity(msg);
   add_r20_to_nibbles(msg, 0xFE, 0, 8);
-  xor_2byte_in_array_encode(msg, xor0, xor1);
+  xor_2byte_in_array_encode(msg, msg[0], msg[1]);
   encode_nibbles(msg);
 }
 
@@ -376,7 +376,7 @@ void Elero::interprete_msg() {
     rssi = (float)((this->msg_rx_[length+1]-256)/2-74);
   else
     rssi = (float)((this->msg_rx_[length+1])/2-74);
-  uint8_t *payload = &msg_rx_[19 + dests_len];
+  uint8_t *payload = &this->msg_rx_[19 + dests_len];
   msg_decode(payload);
   ESP_LOGD(TAG, "len=%02d, cnt=%02d, typ=0x%02x, chl=%02d, src=0x%06x, bwd=0x%06x, fwd=0x%06x, #dst=%02d, dst=%06x, rssi=%2.1f, lqi=%2d, crc=%2d, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", length, cnt, typ, chl, src, bwd, fwd, num_dests, dst, rssi, lqi, crc, payload[0], payload[1], payload[2], payload[3], payload[4], payload[5], payload[6], payload[7]);
 
@@ -397,6 +397,44 @@ void Elero::register_cover(EleroCover *cover) {
     return;
   }
   this->address_to_cover_mapping_.insert({address, cover});
+}
+
+void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel) {
+  uint16_t code = (0x00 - (counter * 0x708f)) & 0xffff;
+  this->msg_tx_[0] = 0x1d; // message length
+  this->msg_tx_[1] = counter; // message counter
+  this->msg_tx_[2] = command; // command
+  this->msg_tx_[3] = 0x10; // ?
+  this->msg_tx_[4] = 0x05; // hop info
+  this->msg_tx_[5] = 0x01; // sys_addr = 1
+  this->msg_tx_[6] = channel; // channel
+  this->msg_tx_[7] = ((remote_addr >> 16) & 0xff); // source address
+  this->msg_tx_[8] = ((remote_addr >> 8) & 0xff);
+  this->msg_tx_[9] =((remote_addr) & 0xff);
+  this->msg_tx_[10] = ((remote_addr >> 16) & 0xff); // backward address
+  this->msg_tx_[11] = ((remote_addr >> 8) & 0xff);
+  this->msg_tx_[12] =((remote_addr) & 0xff);
+  this->msg_tx_[13] = ((remote_addr >> 16) & 0xff); // forward address
+  this->msg_tx_[14] = ((remote_addr >> 8) & 0xff);
+  this->msg_tx_[15] =((remote_addr) & 0xff);
+  this->msg_tx_[16] = 0x01; // destination count
+  this->msg_tx_[17] = ((blind_addr >> 16) & 0xff); // blind address
+  this->msg_tx_[18] = ((blind_addr >> 8) & 0xff);
+  this->msg_tx_[19] = ((blind_addr) & 0xff);
+  this->msg_tx_[20] = 0x00; // ?
+  this->msg_tx_[21] = 0x04; // ?
+  this->msg_tx_[22] = ((code >> 8) & 0xff);
+  this->msg_tx_[23] = (code & 0xff);
+  this->msg_tx_[24] = 0x6a; // since we only support up/down/stop for now, this is hardcoded here
+  this->msg_tx_[25] = command; // the actual command
+  this->msg_tx_[26] = 0x00;
+  this->msg_tx_[27] = 0x00;
+  this->msg_tx_[28] = 0x00;
+  this->msg_tx_[29] = 0x00;
+
+  uint8_t *payload = &this->msg_tx_[22];
+  msg_encode(this->msg_tx_);
+  transmit();
 }
 
 }  // namespace elero
