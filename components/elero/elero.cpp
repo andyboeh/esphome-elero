@@ -55,6 +55,7 @@ void Elero::setup() {
 }
 
 void Elero::flush_and_rx() {
+  ESP_LOGD(TAG, "flush_and_rx");
   this->write_cmd(CC1101_SIDLE);
   this->write_cmd(CC1101_SFRX);
   this->write_cmd(CC1101_SFTX);
@@ -68,9 +69,9 @@ void Elero::reset() {
   
   this->enable();
   this->write_byte(CC1101_SRES);
-  delayMicroseconds(50);
+  delay_microseconds_safe(50);
   this->write_byte(CC1101_SIDLE);
-  delayMicroseconds(50);
+  delay_microseconds_safe(50);
   this->disable();
 }
 
@@ -124,7 +125,7 @@ void Elero::write_reg(uint8_t addr, uint8_t data) {
   this->write_byte(addr);
   this->write_byte(data);
   this->disable();
-  delayMicroseconds(15);
+  delay_microseconds_safe(15);
 }
 
 void Elero::write_burst(uint8_t addr, uint8_t *data, uint8_t len) {
@@ -133,20 +134,21 @@ void Elero::write_burst(uint8_t addr, uint8_t *data, uint8_t len) {
   for(int i=0; i<len; i++)
     this->write_byte(data[i]);
   this->disable();
-  delayMicroseconds(15);
+  delay_microseconds_safe(15);
 }
 
 void Elero::write_cmd(uint8_t cmd) {
   this->enable();
   this->write_byte(cmd);
   this->disable();
-  delayMicroseconds(15);
+  delay_microseconds_safe(15);
 }
 
 bool Elero::wait_rx() {
+  ESP_LOGD(TAG, "wait_rx");
   uint8_t timeout = 200;
-  while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_RX) || (--timeout == 0)) {
-    delayMicroseconds(200);
+  while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_RX) && (--timeout != 0)) {
+    delay_microseconds_safe(200);
   }
   
   if(timeout > 0)
@@ -155,10 +157,29 @@ bool Elero::wait_rx() {
   return false;
 }
 
-bool Elero::wait_tx_done() {
+bool Elero::wait_tx() {
+  ESP_LOGD(TAG, "wait_tx");
   uint8_t timeout = 200;
-  while ((!this->received_) || (--timeout == 0)) {
-    delayMicroseconds(200);
+  uint8_t status = this->read_status(CC1101_MARCSTATE);
+  while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_TX) && (--timeout != 0)) {
+    ESP_LOGD(TAG, "delay wait_tx");
+    delay_microseconds_safe(200);
+  }
+
+  if(timeout > 0)
+    return true;
+  ESP_LOGD(TAG, "Timed out waiting for TX");
+  return false;
+}
+
+bool Elero::wait_tx_done() {
+  ESP_LOGD(TAG, "wait_tx_done");
+  uint8_t timeout = 200;
+  
+  //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) || (--timeout == 0)) {
+  while((!this->received_) && (--timeout != 0)) {
+    delay_microseconds_safe(200);
+    ESP_LOGD(TAG, "waiting for tx done");
   }
 
   if(timeout > 0)
@@ -168,15 +189,25 @@ bool Elero::wait_tx_done() {
 }
 
 void Elero::transmit() {
+  ESP_LOGD(TAG, "transmit called");
   this->flush_and_rx();
-  if(!this->wait_rx())
+  if(!this->wait_rx()) {
+    this->flush_and_rx();
     return;
-  
-  this->write_burst(CC1101_TXFIFO, this->msg_tx_, this->msg_tx_[0]);
+  }
+
+  this->write_cmd(CC1101_SIDLE);
   this->write_cmd(CC1101_STX);
+  if(!this->wait_tx()) {
+    this->flush_and_rx();
+    return;
+  }
+
+  this->write_burst(CC1101_TXFIFO, this->msg_tx_, this->msg_tx_[0]);
   this->wait_tx_done();
-  if((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) {
-    ESP_LOGD(TAG, "Error transferring, bytes left in buffer");
+  uint8_t bytes = this->read_status(CC1101_TXBYTES) & 0x7f;
+  if(bytes != 0) {
+    ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
   } else {
     ESP_LOGD(TAG, "Transmission successful");
   }
@@ -199,7 +230,7 @@ uint8_t Elero::read_status(uint8_t addr) {
   this->write_byte(addr | CC1101_READ_BURST);
   data = this->read_byte();
   this->disable();
-  delayMicroseconds(15);
+  delay_microseconds_safe(15);
   return data;
 }
 
@@ -209,7 +240,7 @@ void Elero::read_buf(uint8_t addr, uint8_t *buf, uint8_t len) {
   for(uint8_t i=0; i<len; i++)
     buf[i] = this->read_byte();
   this->disable();
-  delayMicroseconds(15);
+  delay_microseconds_safe(15);
 }
 
 uint8_t Elero::count_bits(uint8_t byte)
@@ -400,10 +431,11 @@ void Elero::register_cover(EleroCover *cover) {
 }
 
 void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel) {
+  ESP_LOGD(TAG, "send_command called");
   uint16_t code = (0x00 - (counter * 0x708f)) & 0xffff;
   this->msg_tx_[0] = 0x1d; // message length
   this->msg_tx_[1] = counter; // message counter
-  this->msg_tx_[2] = command; // command
+  this->msg_tx_[2] = 0x6a; // since we only support up/down/stop, this is hardcoded here
   this->msg_tx_[3] = 0x10; // ?
   this->msg_tx_[4] = 0x05; // hop info
   this->msg_tx_[5] = 0x01; // sys_addr = 1
@@ -422,11 +454,11 @@ void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, 
   this->msg_tx_[18] = ((blind_addr >> 8) & 0xff);
   this->msg_tx_[19] = ((blind_addr) & 0xff);
   this->msg_tx_[20] = 0x00; // ?
-  this->msg_tx_[21] = 0x04; // ?
+  this->msg_tx_[21] = 0x03; // ?
   this->msg_tx_[22] = ((code >> 8) & 0xff);
   this->msg_tx_[23] = (code & 0xff);
-  this->msg_tx_[24] = 0x6a; // since we only support up/down/stop for now, this is hardcoded here
-  this->msg_tx_[25] = command; // the actual command
+  this->msg_tx_[24] = command;
+  this->msg_tx_[25] = 0x00;
   this->msg_tx_[26] = 0x00;
   this->msg_tx_[27] = 0x00;
   this->msg_tx_[28] = 0x00;

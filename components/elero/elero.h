@@ -38,6 +38,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void write_burst(uint8_t addr, uint8_t *data, uint8_t len);
   void write_cmd(uint8_t cmd);
   bool wait_rx();
+  bool wait_tx();
   bool wait_tx_done();
   void transmit();
   uint8_t read_reg(uint8_t addr);

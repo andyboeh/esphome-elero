@@ -57,9 +57,11 @@ void EleroCover::control(const cover::CoverCall &call) {
   if (call.get_position().has_value()) {
     auto pos = *call.get_position();
     if(pos == COVER_OPEN) {
+      ESP_LOGD(TAG, "Sending OPEN command");
       this->send_command(elero::ELERO_COMMAND_COVER_UP);
     } else if(pos == COVER_CLOSED) {
-      this->send_command(elero::ELERO_COMMAND_COVER_UP);
+      ESP_LOGD(TAG, "Sending CLOSE command");
+      this->send_command(elero::ELERO_COMMAND_COVER_DOWN);
     }
   }
 }

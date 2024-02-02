@@ -20,7 +20,6 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
         cv.Required(CONF_BLIND_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
         cv.Required(CONF_CHANNEL): cv.int_range(min=0, max=255),
         cv.Required(CONF_REMOTE_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
-        cv.Required(CONF_NAME): cv.string,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -35,4 +34,3 @@ async def to_code(config):
     cg.add(var.set_blind_address(config[CONF_BLIND_ADDRESS]))
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_remote_address(config[CONF_REMOTE_ADDRESS]))
-    cg.add(var.set_name(config[CONF_NAME]))

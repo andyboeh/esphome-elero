@@ -22,7 +22,6 @@ class EleroCover : public cover::Cover, public Component {
   void set_blind_address(uint32_t address) { this->blind_address_ = address; }
   void set_channel(uint8_t channel) { this->channel_ = channel; }
   void set_remote_address(uint32_t remote) { this->remote_address_ = remote; }
-  void set_name(std::string name) { this->name_ = name; }
   uint32_t get_blind_address() { return this->blind_address_; }
   void set_rx_state(uint8_t state);
   
@@ -35,7 +34,6 @@ class EleroCover : public cover::Cover, public Component {
   uint32_t remote_address_{0};
   uint8_t channel_{0};
   uint8_t counter_{1};
-  std::string name_;
   Elero *parent_;
 };
 
