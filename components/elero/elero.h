@@ -49,8 +49,9 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel);
   
   void set_gdo0_pin(InternalGPIOPin *pin) { gdo0_pin_ = pin; }
-
-
+  void set_freq0(uint8_t freq) { freq0_ = freq; }
+  void set_freq1(uint8_t freq) { freq1_ = freq; }
+  void set_freq2(uint8_t freq) { freq2_ = freq; }
 
  private:
   uint8_t count_bits(uint8_t byte);
@@ -68,6 +69,9 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   bool received_{false};
   uint8_t msg_rx_[CC1101_FIFO_LENGTH];
   uint8_t msg_tx_[CC1101_FIFO_LENGTH];
+  uint8_t freq0_{0x7a};
+  uint8_t freq1_{0x71};
+  uint8_t freq2_{0x21};
   InternalGPIOPin *gdo0_pin_{nullptr};
   ISRInternalGPIOPin gdo0_irq_pin_{nullptr};
   std::map<uint32_t, EleroCover*> address_to_cover_mapping_;

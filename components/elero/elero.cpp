@@ -79,9 +79,9 @@ void Elero::init() {
 
   this->write_reg(CC1101_FSCTRL1, 0x08);
   this->write_reg(CC1101_FSCTRL0, 0x00);
-  this->write_reg(CC1101_FREQ2, 0x21);
-  this->write_reg(CC1101_FREQ1, 0x71); 
-  this->write_reg(CC1101_FREQ0, 0xC0); 
+  this->write_reg(CC1101_FREQ2, this->freq2_);
+  this->write_reg(CC1101_FREQ1, this->freq1_);
+  this->write_reg(CC1101_FREQ0, this->freq0_);
   this->write_reg(CC1101_MDMCFG4, 0x7B);
   this->write_reg(CC1101_MDMCFG3, 0x83);
   this->write_reg(CC1101_MDMCFG2, 0x13); 
