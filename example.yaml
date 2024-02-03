@@ -1,10 +1,21 @@
+external_components:
+  - source: github://andyboeh/esphome-elero
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
 elero:
   cs_pin: GPIO5
-  gdo0_pin: GPIO23
+  gdo0_pin: GPIO26
+  freq0: 0xc0
+  freq1: 0x71
+  freq2: 0x21
 
 cover:
   - platform: elero
-    blind_address: 0xe58a31
-    channel: 0x1b
-    remote_address: 0xd0f008
-    name: "Schlafzimmer"
+    blind_address: 0xa831e5
+    channel: 4
+    remote_address: 0xf0d008
+    name: Schlafzimmer

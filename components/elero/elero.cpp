@@ -176,7 +176,7 @@ bool Elero::wait_tx_done() {
   ESP_LOGD(TAG, "wait_tx_done");
   uint8_t timeout = 200;
   
-  //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) || (--timeout == 0)) {
+  //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) && (--timeout != 0)) {
   while((!this->received_) && (--timeout != 0)) {
     delay_microseconds_safe(200);
     ESP_LOGD(TAG, "waiting for tx done");
@@ -189,22 +189,19 @@ bool Elero::wait_tx_done() {
 }
 
 void Elero::transmit() {
-  ESP_LOGD(TAG, "transmit called");
+  ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
   this->flush_and_rx();
   if(!this->wait_rx()) {
-    this->flush_and_rx();
+    ESP_LOGD(TAG, "Error waiting for Rx");
     return;
   }
 
-  this->write_cmd(CC1101_SIDLE);
+  this->write_burst(CC1101_TXFIFO, this->msg_tx_, this->msg_tx_[0] + 1);
   this->write_cmd(CC1101_STX);
-  if(!this->wait_tx()) {
-    this->flush_and_rx();
-    return;
-  }
 
-  this->write_burst(CC1101_TXFIFO, this->msg_tx_, this->msg_tx_[0]);
+  this->wait_tx();
   this->wait_tx_done();
+
   uint8_t bytes = this->read_status(CC1101_TXBYTES) & 0x7f;
   if(bytes != 0) {
     ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
@@ -376,9 +373,11 @@ void Elero::msg_decode(uint8_t *msg) {
 }
 
 void Elero::msg_encode(uint8_t* msg) {
+  uint8_t xor0 = msg[0];
+  uint8_t xor1 = msg[1];
   calc_parity(msg);
   add_r20_to_nibbles(msg, 0xFE, 0, 8);
-  xor_2byte_in_array_encode(msg, msg[0], msg[1]);
+  xor_2byte_in_array_encode(msg, xor0, xor1);
   encode_nibbles(msg);
 }
 
@@ -386,6 +385,9 @@ void Elero::interprete_msg() {
   uint8_t length = this->msg_rx_[0];
   uint8_t cnt = this->msg_rx_[1];
   uint8_t typ = this->msg_rx_[2];
+  uint8_t typ2 = this->msg_rx_[3];
+  uint8_t hop = this->msg_rx_[4];
+  uint8_t syst = this->msg_rx_[5];
   uint8_t chl = this->msg_rx_[6];
   uint32_t src = ((uint32_t)this->msg_rx_[7] << 16) | ((uint32_t)this->msg_rx_[8] << 8) | (this->msg_rx_[9]);
   uint32_t bwd = ((uint32_t)this->msg_rx_[10] << 16) | ((uint32_t)this->msg_rx_[11] << 8) | (this->msg_rx_[12]);
@@ -400,6 +402,8 @@ void Elero::interprete_msg() {
     dests_len = this->msg_rx_[16];
     dst = this->msg_rx_[17];
   }
+  uint8_t payload1 = this->msg_rx_[17 + dests_len];
+  uint8_t payload2 = this->msg_rx_[18 + dests_len];
   uint8_t crc = this->msg_rx_[length + 2] >> 7;
   uint8_t lqi = this->msg_rx_[length + 2] & 0x7f;
   float rssi;
@@ -409,7 +413,7 @@ void Elero::interprete_msg() {
     rssi = (float)((this->msg_rx_[length+1])/2-74);
   uint8_t *payload = &this->msg_rx_[19 + dests_len];
   msg_decode(payload);
-  ESP_LOGD(TAG, "len=%02d, cnt=%02d, typ=0x%02x, chl=%02d, src=0x%06x, bwd=0x%06x, fwd=0x%06x, #dst=%02d, dst=%06x, rssi=%2.1f, lqi=%2d, crc=%2d, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", length, cnt, typ, chl, src, bwd, fwd, num_dests, dst, rssi, lqi, crc, payload[0], payload[1], payload[2], payload[3], payload[4], payload[5], payload[6], payload[7]);
+  ESP_LOGD(TAG, "len=%02d, cnt=%02d, typ=0x%02x, typ2=0x%02x, hop=%02x, syst=%02x, chl=%02d, src=0x%06x, bwd=0x%06x, fwd=0x%06x, #dst=%02d, dst=%06x, rssi=%2.1f, lqi=%2d, crc=%2d, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", length, cnt, typ, typ2, hop, syst, chl, src, bwd, fwd, num_dests, dst, rssi, lqi, crc, payload1, payload2, payload[0], payload[1], payload[2], payload[3], payload[4], payload[5], payload[6], payload[7]);
 
   if(typ == 0xca) { // Status message from a blind
     // Check if we know the blind
@@ -436,8 +440,8 @@ void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, 
   this->msg_tx_[0] = 0x1d; // message length
   this->msg_tx_[1] = counter; // message counter
   this->msg_tx_[2] = 0x6a; // since we only support up/down/stop, this is hardcoded here
-  this->msg_tx_[3] = 0x10; // ?
-  this->msg_tx_[4] = 0x05; // hop info
+  this->msg_tx_[3] = 0x00; // ?
+  this->msg_tx_[4] = 0x0a; // hop info
   this->msg_tx_[5] = 0x01; // sys_addr = 1
   this->msg_tx_[6] = channel; // channel
   this->msg_tx_[7] = ((remote_addr >> 16) & 0xff); // source address
@@ -454,7 +458,7 @@ void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, 
   this->msg_tx_[18] = ((blind_addr >> 8) & 0xff);
   this->msg_tx_[19] = ((blind_addr) & 0xff);
   this->msg_tx_[20] = 0x00; // ?
-  this->msg_tx_[21] = 0x03; // ?
+  this->msg_tx_[21] = 0x04; // ?
   this->msg_tx_[22] = ((code >> 8) & 0xff);
   this->msg_tx_[23] = (code & 0xff);
   this->msg_tx_[24] = command;
@@ -465,7 +469,7 @@ void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, 
   this->msg_tx_[29] = 0x00;
 
   uint8_t *payload = &this->msg_tx_[22];
-  msg_encode(this->msg_tx_);
+  msg_encode(payload);
   transmit();
 }
 

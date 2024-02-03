@@ -11,6 +11,8 @@ Ultimately, this component should allow you to control Elero blinds with the
 bidirectional protocol directly from Home Assistant using an ESP32 with a CC1101
 module attached. 
 
-Currently, the code can successfully listen to, decode and dump remote messages
-from an Elero remote / Elero blind. Transmitting and mapping to blinds is not
-yet supported.
+The current code can transmit and simulate the TempoTel 2 that I have. Since some values are different to the two projects mentioned above, I'm not sure which/if this has an impact. I might make the remaining differences configurable configurable so that any type of remote can be simulated.
+
+At the moment, there is no feedback and status of the blinds to Home Assistant, only controls are working.
+
+Please be advised that this is very early development make, features might not work as intended!
