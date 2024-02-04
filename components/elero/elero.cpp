@@ -432,41 +432,36 @@ void Elero::register_cover(EleroCover *cover) {
     return;
   }
   this->address_to_cover_mapping_.insert({address, cover});
+  cover->set_poll_offset((this->address_to_cover_mapping_.size() - 1) * 5000);
 }
 
-void Elero::send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel) {
+void Elero::send_command(t_elero_command *cmd) {
   ESP_LOGD(TAG, "send_command called");
-  uint16_t code = (0x00 - (counter * 0x708f)) & 0xffff;
+  uint16_t code = (0x00 - (cmd->counter * 0x708f)) & 0xffff;
   this->msg_tx_[0] = 0x1d; // message length
-  this->msg_tx_[1] = counter; // message counter
-  this->msg_tx_[2] = 0x6a; // since we only support up/down/stop, this is hardcoded here
-  this->msg_tx_[3] = 0x00; // ?
-  this->msg_tx_[4] = 0x0a; // hop info
+  this->msg_tx_[1] = cmd->counter; // message counter
+  this->msg_tx_[2] = cmd->pck_inf[0];
+  this->msg_tx_[3] = cmd->pck_inf[1];
+  this->msg_tx_[4] = cmd->hop; // hop info
   this->msg_tx_[5] = 0x01; // sys_addr = 1
-  this->msg_tx_[6] = channel; // channel
-  this->msg_tx_[7] = ((remote_addr >> 16) & 0xff); // source address
-  this->msg_tx_[8] = ((remote_addr >> 8) & 0xff);
-  this->msg_tx_[9] =((remote_addr) & 0xff);
-  this->msg_tx_[10] = ((remote_addr >> 16) & 0xff); // backward address
-  this->msg_tx_[11] = ((remote_addr >> 8) & 0xff);
-  this->msg_tx_[12] =((remote_addr) & 0xff);
-  this->msg_tx_[13] = ((remote_addr >> 16) & 0xff); // forward address
-  this->msg_tx_[14] = ((remote_addr >> 8) & 0xff);
-  this->msg_tx_[15] =((remote_addr) & 0xff);
+  this->msg_tx_[6] = cmd->channel; // channel
+  this->msg_tx_[7] = ((cmd->remote_addr >> 16) & 0xff); // source address
+  this->msg_tx_[8] = ((cmd->remote_addr >> 8) & 0xff);
+  this->msg_tx_[9] =((cmd->remote_addr) & 0xff);
+  this->msg_tx_[10] = ((cmd->remote_addr >> 16) & 0xff); // backward address
+  this->msg_tx_[11] = ((cmd->remote_addr >> 8) & 0xff);
+  this->msg_tx_[12] =((cmd->remote_addr) & 0xff);
+  this->msg_tx_[13] = ((cmd->remote_addr >> 16) & 0xff); // forward address
+  this->msg_tx_[14] = ((cmd->remote_addr >> 8) & 0xff);
+  this->msg_tx_[15] =((cmd->remote_addr) & 0xff);
   this->msg_tx_[16] = 0x01; // destination count
-  this->msg_tx_[17] = ((blind_addr >> 16) & 0xff); // blind address
-  this->msg_tx_[18] = ((blind_addr >> 8) & 0xff);
-  this->msg_tx_[19] = ((blind_addr) & 0xff);
-  this->msg_tx_[20] = 0x00; // ?
-  this->msg_tx_[21] = 0x04; // ?
+  this->msg_tx_[17] = ((cmd->blind_addr >> 16) & 0xff); // blind address
+  this->msg_tx_[18] = ((cmd->blind_addr >> 8) & 0xff);
+  this->msg_tx_[19] = ((cmd->blind_addr) & 0xff);
+  for(int i=0; i<10; i++)
+    this->msg_tx_[20 + i] = cmd->payload[i];
   this->msg_tx_[22] = ((code >> 8) & 0xff);
   this->msg_tx_[23] = (code & 0xff);
-  this->msg_tx_[24] = command;
-  this->msg_tx_[25] = 0x00;
-  this->msg_tx_[26] = 0x00;
-  this->msg_tx_[27] = 0x00;
-  this->msg_tx_[28] = 0x00;
-  this->msg_tx_[29] = 0x00;
 
   uint8_t *payload = &this->msg_tx_[22];
   msg_encode(payload);

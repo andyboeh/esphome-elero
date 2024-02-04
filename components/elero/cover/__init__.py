@@ -10,6 +10,15 @@ CODEOWNERS = ["@andyboeh"]
 
 CONF_BLIND_ADDRESS = "blind_address"
 CONF_REMOTE_ADDRESS = "remote_address"
+CONF_PAYLOAD_1 = "payload_1"
+CONF_PAYLOAD_2 = "payload_2"
+CONF_PCKINF_1 = "pck_inf1"
+CONF_PCKINF_2 = "pck_inf2"
+CONF_HOP = "hop"
+CONF_COMMAND_UP = "command_up"
+CONF_COMMAND_DOWN = "command_down"
+CONF_COMMAND_STOP = "command_stop"
+CONF_COMMAND_CHECK = "command_check"
 
 EleroCover = elero_ns.class_("EleroCover", cover.Cover, cg.Component)
 
@@ -20,6 +29,15 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
         cv.Required(CONF_BLIND_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
         cv.Required(CONF_CHANNEL): cv.int_range(min=0, max=255),
         cv.Required(CONF_REMOTE_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
+        cv.Optional(CONF_PAYLOAD_1, default=0x00): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_PAYLOAD_2, default=0x04): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_PCKINF_1, default=0x6a): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_PCKINF_2, default=0x00): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_HOP, default=0x0a): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_COMMAND_UP, default=0x20): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_COMMAND_DOWN, default=0x40): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_COMMAND_STOP, default=0x10): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_COMMAND_CHECK, default=0x00): cv.hex_int_range(min=0x0, max=0xff),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -34,3 +52,12 @@ async def to_code(config):
     cg.add(var.set_blind_address(config[CONF_BLIND_ADDRESS]))
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_remote_address(config[CONF_REMOTE_ADDRESS]))
+    cg.add(var.set_payload_1(config[CONF_PAYLOAD_1]))
+    cg.add(var.set_payload_2(config[CONF_PAYLOAD_2]))
+    cg.add(var.set_pckinf_1(config[CONF_PCKINF_1]))
+    cg.add(var.set_pckinf_2(config[CONF_PCKINF_2]))
+    cg.add(var.set_hop(config[CONF_HOP]))
+    cg.add(var.set_command_up(config[CONF_COMMAND_UP]))
+    cg.add(var.set_command_down(config[CONF_COMMAND_DOWN]))
+    cg.add(var.set_command_check(config[CONF_COMMAND_CHECK]))
+    cg.add(var.set_command_stop(config[CONF_COMMAND_STOP]))

@@ -19,6 +19,37 @@ static const uint8_t ELERO_COMMAND_COVER_TILT = 0x24;
 static const uint8_t ELERO_COMMAND_COVER_DOWN = 0x40;
 static const uint8_t ELERO_COMMAND_COVER_INT = 0x44;
 
+static const uint8_t ELERO_STATE_UNKNOWN = 0x00;
+static const uint8_t ELERO_STATE_TOP = 0x01;
+static const uint8_t ELERO_STATE_BOTTOM = 0x02;
+static const uint8_t ELERO_STATE_INTERMEDIATE = 0x03;
+static const uint8_t ELERO_STATE_TILT =0x04;
+static const uint8_t ELERO_STATE_BLOCKING = 0x05;
+static const uint8_t ELERO_STATE_OVERHEATED = 0x06;
+static const uint8_t ELERO_STATE_TIMEOUT = 0x07;
+static const uint8_t ELERO_STATE_START_MOVING_UP = 0x08;
+static const uint8_t ELERO_STATE_START_MOVING_DOWN = 0x09;
+static const uint8_t ELERO_STATE_MOVING_UP = 0x0a;
+static const uint8_t ELERO_STATE_MOVING_DOWN = 0x0b;
+static const uint8_t ELERO_STATE_STOPPED = 0x0c;
+static const uint8_t ELERO_STATE_TOP_TILT = 0x0d;
+static const uint8_t ELERO_STATE_BOTTOM_TILT = 0x0e;
+static const uint8_t ELERO_STATE_OFF = 0x0f;
+static const uint8_t ELERO_STATE_ON = 0x10;
+
+static const uint32_t ELERO_POLL_INTERVAL = 300000;        // poll blinds every 5 minutes
+static const uint32_t ELERO_POLL_INTERVAL_MOVING = 2000;  // poll every two seconds while moving
+
+typedef struct {
+  uint8_t counter;
+  uint32_t blind_addr;
+  uint32_t remote_addr;
+  uint8_t channel;
+  uint8_t pck_inf[2];
+  uint8_t hop;
+  uint8_t payload[10];
+} t_elero_command;
+
 class EleroCover;
 
 class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,
@@ -47,7 +78,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   void flush_and_rx();
   void interprete_msg();
   void register_cover(EleroCover *cover);
-  void send_command(uint8_t command, uint8_t counter, uint32_t blind_addr, uint32_t remote_addr, uint8_t channel);
+  void send_command(t_elero_command *cmd);
   
   void set_gdo0_pin(InternalGPIOPin *pin) { gdo0_pin_ = pin; }
   void set_freq0(uint8_t freq) { freq0_ = freq; }
