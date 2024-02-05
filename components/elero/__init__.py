@@ -20,9 +20,9 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(elero),
             cv.Required(CONF_GDO0_PIN): pins.gpio_input_pin_schema,
-            cv.Optional(CONF_FREQ0, default=0x21): cv.hex_int_range(min=0x0, max=0xff),
+            cv.Optional(CONF_FREQ0, default=0x7a): cv.hex_int_range(min=0x0, max=0xff),
             cv.Optional(CONF_FREQ1, default=0x71): cv.hex_int_range(min=0x0, max=0xff),
-            cv.Optional(CONF_FREQ2, default=0x7a): cv.hex_int_range(min=0x0, max=0xff),
+            cv.Optional(CONF_FREQ2, default=0x21): cv.hex_int_range(min=0x0, max=0xff),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)

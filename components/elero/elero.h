@@ -43,7 +43,7 @@ static const uint32_t ELERO_DELAY_SEND_PACKETS = 50000; // 50ms send delay betwe
 static const uint32_t ELERO_TIMEOUT_MOVEMENT = 120000; // poll for up to two minutes while moving
 
 static const uint8_t ELERO_SEND_RETRIES = 3;
-static const uint8_t ELERO_SEND_PACKETS = 3;
+static const uint8_t ELERO_SEND_PACKETS = 2;
 
 typedef struct {
   uint8_t counter;
