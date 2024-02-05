@@ -146,9 +146,9 @@ void Elero::write_cmd(uint8_t cmd) {
 
 bool Elero::wait_rx() {
   ESP_LOGD(TAG, "wait_rx");
-  uint8_t timeout = 200;
+  uint8_t timeout = 100;
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_RX) && (--timeout != 0)) {
-    delay_microseconds_safe(200);
+    delay_microseconds_safe(100);
   }
   
   if(timeout > 0)
@@ -159,11 +159,11 @@ bool Elero::wait_rx() {
 
 bool Elero::wait_tx() {
   ESP_LOGD(TAG, "wait_tx");
-  uint8_t timeout = 200;
+  uint8_t timeout = 100;
   uint8_t status = this->read_status(CC1101_MARCSTATE);
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_TX) && (--timeout != 0)) {
     ESP_LOGD(TAG, "delay wait_tx");
-    delay_microseconds_safe(200);
+    delay_microseconds_safe(100);
   }
 
   if(timeout > 0)
@@ -174,7 +174,7 @@ bool Elero::wait_tx() {
 
 bool Elero::wait_tx_done() {
   ESP_LOGD(TAG, "wait_tx_done");
-  uint8_t timeout = 200;
+  uint8_t timeout = 100;
   
   //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) && (--timeout != 0)) {
   while((!this->received_) && (--timeout != 0)) {
@@ -184,31 +184,39 @@ bool Elero::wait_tx_done() {
 
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for TX");
+  ESP_LOGD(TAG, "Timed out waiting for TX Done");
   return false;
 }
 
-void Elero::transmit() {
+bool Elero::transmit() {
   ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
   this->flush_and_rx();
   if(!this->wait_rx()) {
     ESP_LOGD(TAG, "Error waiting for Rx");
-    return;
+    return false;
   }
 
   this->write_burst(CC1101_TXFIFO, this->msg_tx_, this->msg_tx_[0] + 1);
   this->write_cmd(CC1101_STX);
 
-  this->wait_tx();
-  this->wait_tx_done();
+  if(!this->wait_tx()) {
+    this->flush_and_rx();
+    return false;
+  }
+  if(!this->wait_tx_done()) {
+    this->flush_and_rx();
+    return false;
+  }
 
   uint8_t bytes = this->read_status(CC1101_TXBYTES) & 0x7f;
+  this->flush_and_rx();
   if(bytes != 0) {
     ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
+    return false;
   } else {
     ESP_LOGD(TAG, "Transmission successful");
+    return true;
   }
-  this->flush_and_rx();
 }
 
 uint8_t Elero::read_reg(uint8_t addr) {
@@ -415,7 +423,7 @@ void Elero::interprete_msg() {
   msg_decode(payload);
   ESP_LOGD(TAG, "len=%02d, cnt=%02d, typ=0x%02x, typ2=0x%02x, hop=%02x, syst=%02x, chl=%02d, src=0x%06x, bwd=0x%06x, fwd=0x%06x, #dst=%02d, dst=%06x, rssi=%2.1f, lqi=%2d, crc=%2d, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", length, cnt, typ, typ2, hop, syst, chl, src, bwd, fwd, num_dests, dst, rssi, lqi, crc, payload1, payload2, payload[0], payload[1], payload[2], payload[3], payload[4], payload[5], payload[6], payload[7]);
 
-  if(typ == 0xca) { // Status message from a blind
+  if((typ == 0xca) || (typ == 0xc9)) { // Status message from a blind
     // Check if we know the blind
     // status = payload[6]
     auto search = this->address_to_cover_mapping_.find(src);
@@ -435,7 +443,7 @@ void Elero::register_cover(EleroCover *cover) {
   cover->set_poll_offset((this->address_to_cover_mapping_.size() - 1) * 5000);
 }
 
-void Elero::send_command(t_elero_command *cmd) {
+bool Elero::send_command(t_elero_command *cmd) {
   ESP_LOGD(TAG, "send_command called");
   uint16_t code = (0x00 - (cmd->counter * 0x708f)) & 0xffff;
   this->msg_tx_[0] = 0x1d; // message length
@@ -465,7 +473,7 @@ void Elero::send_command(t_elero_command *cmd) {
 
   uint8_t *payload = &this->msg_tx_[22];
   msg_encode(payload);
-  transmit();
+  return transmit();
 }
 
 }  // namespace elero

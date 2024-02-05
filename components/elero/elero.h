@@ -39,6 +39,11 @@ static const uint8_t ELERO_STATE_ON = 0x10;
 
 static const uint32_t ELERO_POLL_INTERVAL = 300000;        // poll blinds every 5 minutes
 static const uint32_t ELERO_POLL_INTERVAL_MOVING = 2000;  // poll every two seconds while moving
+static const uint32_t ELERO_DELAY_SEND_PACKETS = 50000; // 50ms send delay between repeats
+static const uint32_t ELERO_TIMEOUT_MOVEMENT = 120000; // poll for up to two minutes while moving
+
+static const uint8_t ELERO_SEND_RETRIES = 3;
+static const uint8_t ELERO_SEND_PACKETS = 3;
 
 typedef struct {
   uint8_t counter;
@@ -71,14 +76,14 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   bool wait_rx();
   bool wait_tx();
   bool wait_tx_done();
-  void transmit();
+  bool transmit();
   uint8_t read_reg(uint8_t addr);
   uint8_t read_status(uint8_t addr);
   void read_buf(uint8_t addr, uint8_t *buf, uint8_t len);
   void flush_and_rx();
   void interprete_msg();
   void register_cover(EleroCover *cover);
-  void send_command(t_elero_command *cmd);
+  bool send_command(t_elero_command *cmd);
   
   void set_gdo0_pin(InternalGPIOPin *pin) { gdo0_pin_ = pin; }
   void set_freq0(uint8_t freq) { freq0_ = freq; }

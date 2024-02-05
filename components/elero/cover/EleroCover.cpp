@@ -1,6 +1,5 @@
 #include "EleroCover.h"
 #include "esphome/core/log.h"
-#include "esphome/components/elero/elero.h"
 
 namespace esphome {
 namespace elero {
@@ -20,8 +19,10 @@ void EleroCover::setup() {
 
 void EleroCover::loop() {
   uint32_t intvl = ELERO_POLL_INTERVAL;
-  if(this->current_operation != COVER_OPERATION_IDLE)
-    intvl = ELERO_POLL_INTERVAL_MOVING;
+  if(this->current_operation != COVER_OPERATION_IDLE) {
+    if((millis() - ELERO_TIMEOUT_MOVEMENT) < this->movement_start_) // do not poll frequently for an extended period of time
+      intvl = ELERO_POLL_INTERVAL_MOVING;
+  }
 
   if((millis() > this->poll_offset_) && (millis() - this->poll_offset_ - this->last_poll_) > intvl) {
     this->send_command(this->command_check_);
@@ -78,7 +79,13 @@ void EleroCover::increase_counter() {
 void EleroCover::send_command(uint8_t command) {
   this->command_.payload[4] = command;
 
-  this->parent_->send_command(&this->command_);
+  for(uint8_t i=0; i<ELERO_SEND_PACKETS; i++) {
+    for(uint8_t i=0; i<ELERO_SEND_RETRIES; i++) {
+      if(this->parent_->send_command(&this->command_))
+        break;
+    }
+    delay_microseconds_safe(ELERO_DELAY_SEND_PACKETS);
+  }
   this->increase_counter();
 }
 
@@ -93,12 +100,14 @@ void EleroCover::control(const cover::CoverCall &call) {
       this->send_command(this->command_up_);
       this->current_operation = COVER_OPERATION_OPENING;
       this->position = COVER_OPEN;
+      this->movement_start_ = millis();
       this->publish_state();
     } else if(pos == COVER_CLOSED) {
       ESP_LOGD(TAG, "Sending CLOSE command");
       this->send_command(this->command_down_);
       this->current_operation = COVER_OPERATION_CLOSING;
       this->position = COVER_CLOSED;
+      this->movement_start_ = millis();
       this->publish_state();
     }
   }

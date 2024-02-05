@@ -45,6 +45,7 @@ class EleroCover : public cover::Cover, public Component {
   Elero *parent_;
   uint32_t last_poll_{0};
   uint32_t poll_offset_{0};
+  uint32_t movement_start_{0};
   uint8_t command_up_{0x20};
   uint8_t command_down_{0x40};
   uint8_t command_check_{0x00};
