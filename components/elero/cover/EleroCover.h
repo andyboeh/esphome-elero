@@ -4,6 +4,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
 #include "esphome/components/elero/elero.h"
+#include <queue>
 
 namespace esphome {
 namespace elero {
@@ -33,6 +34,7 @@ class EleroCover : public cover::Cover, public Component {
   void set_poll_offset(uint32_t offset) { this->poll_offset_ = offset; }
   uint32_t get_blind_address() { return this->command_.blind_addr; }
   void set_rx_state(uint8_t state);
+  void handle_commands();
   
  protected:
   void control(const cover::CoverCall &call) override;
@@ -44,12 +46,15 @@ class EleroCover : public cover::Cover, public Component {
   };
   Elero *parent_;
   uint32_t last_poll_{0};
+  uint32_t last_command_{0};
   uint32_t poll_offset_{0};
   uint32_t movement_start_{0};
   uint8_t command_up_{0x20};
   uint8_t command_down_{0x40};
   uint8_t command_check_{0x00};
   uint8_t command_stop_{0x10};
+  std::queue<uint8_t> commands_to_send_;
+  uint8_t send_retries_{0};
 };
 
 } // namespace elero

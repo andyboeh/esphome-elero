@@ -28,6 +28,27 @@ void EleroCover::loop() {
     this->send_command(this->command_check_);
     this->last_poll_ = millis() - this->poll_offset_;
   }
+
+  this->handle_commands();
+}
+
+void EleroCover::handle_commands() {
+  if((millis() - this->last_command_) > ELERO_DELAY_SEND_PACKETS) {
+    if(this->commands_to_send_.size() > 0) {
+      this->command_.payload[4] = this->commands_to_send_.front();
+      if(this->parent_->send_command(&this->command_)) {
+        this->commands_to_send_.pop();
+        this->send_retries_ = 0;
+      } else {
+        this->send_retries_++;
+        if(this->send_retries_ > ELERO_SEND_RETRIES) {
+          this->send_retries_ = 0;
+          this->commands_to_send_.pop();
+        }
+      }
+      this->last_command_ = millis();
+    }
+  }
 }
 
 float EleroCover::get_setup_priority() const { return setup_priority::DATA; }
@@ -43,30 +64,38 @@ cover::CoverTraits EleroCover::get_traits() {
 
 void EleroCover::set_rx_state(uint8_t state) {
   ESP_LOGD(TAG, "Got state: 0x%02x for blind 0x%02x", state, this->command_.blind_addr);
+  float pos = this->position;
+  CoverOperation op = this->current_operation;
+
   switch(state) {
   case ELERO_STATE_TOP:
-    this->position = COVER_OPEN;
-    this->current_operation = COVER_OPERATION_IDLE;
+    pos = COVER_OPEN;
+    op = COVER_OPERATION_IDLE;
     break;
   case ELERO_STATE_BOTTOM:
-    this->position = COVER_CLOSED;
-    this->current_operation = COVER_OPERATION_IDLE;
+    pos = COVER_CLOSED;
+    op = COVER_OPERATION_IDLE;
     break;
   case ELERO_STATE_START_MOVING_UP:
   case ELERO_STATE_MOVING_UP:
-    this->current_operation = COVER_OPERATION_OPENING;
+    op = COVER_OPERATION_OPENING;
     break;
   case ELERO_STATE_START_MOVING_DOWN:
   case ELERO_STATE_MOVING_DOWN:
-    this->current_operation = COVER_OPERATION_CLOSING;
+    op = COVER_OPERATION_CLOSING;
     break;
   case ELERO_STATE_STOPPED:
-    this->current_operation = COVER_OPERATION_IDLE;
+    op = COVER_OPERATION_IDLE;
     break;
   default:
-    this->current_operation = COVER_OPERATION_IDLE;
+    op = COVER_OPERATION_IDLE;
   }
-  this->publish_state();
+
+  if((pos != this->position) || (op != this->current_operation)) {
+    this->position = pos;
+    this->current_operation = op;
+    this->publish_state();
+  }
 }
 
 void EleroCover::increase_counter() {
@@ -80,11 +109,7 @@ void EleroCover::send_command(uint8_t command) {
   this->command_.payload[4] = command;
 
   for(uint8_t i=0; i<ELERO_SEND_PACKETS; i++) {
-    for(uint8_t i=0; i<ELERO_SEND_RETRIES; i++) {
-      if(this->parent_->send_command(&this->command_))
-        break;
-    }
-    delay_microseconds_safe(ELERO_DELAY_SEND_PACKETS);
+    this->commands_to_send_.push(command);
   }
   this->increase_counter();
 }
