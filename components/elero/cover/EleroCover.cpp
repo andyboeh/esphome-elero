@@ -14,26 +14,63 @@ void EleroCover::dump_config() {
 
 void EleroCover::setup() {
   this->parent_->register_cover(this);
-
+  auto restore = this->restore_state_();
+  if (restore.has_value()) {
+    restore->apply(this);
+  } else {
+    if((this->open_duration_ > 0) && (this->close_duration_ > 0))
+      this->position = 0.5f;
+  }
 }
 
 void EleroCover::loop() {
   uint32_t intvl = ELERO_POLL_INTERVAL;
+  uint32_t now = millis();
   if(this->current_operation != COVER_OPERATION_IDLE) {
-    if((millis() - ELERO_TIMEOUT_MOVEMENT) < this->movement_start_) // do not poll frequently for an extended period of time
+    if((now - ELERO_TIMEOUT_MOVEMENT) < this->movement_start_) // do not poll frequently for an extended period of time
       intvl = ELERO_POLL_INTERVAL_MOVING;
   }
 
-  if((millis() > this->poll_offset_) && (millis() - this->poll_offset_ - this->last_poll_) > intvl) {
+  if((now > this->poll_offset_) && (now - this->poll_offset_ - this->last_poll_) > intvl) {
     this->send_command(this->command_check_);
-    this->last_poll_ = millis() - this->poll_offset_;
+    this->last_poll_ = now - this->poll_offset_;
   }
 
-  this->handle_commands();
+  this->handle_commands(now);
+  if((this->current_operation != COVER_OPERATION_IDLE) && (this->open_duration_ > 0) && (this->close_duration_ > 0)) {
+    this->recompute_position();
+    if(this->is_at_target()) {
+      this->send_command(this->command_stop_);
+      this->current_operation = COVER_OPERATION_IDLE;
+    }
+
+    // Publish position every second
+    if(now - this->last_publish_ > 1000) {
+      this->publish_state(false);
+      this->last_publish_ = now;
+    }
+  }
 }
 
-void EleroCover::handle_commands() {
-  if((millis() - this->last_command_) > ELERO_DELAY_SEND_PACKETS) {
+bool EleroCover::is_at_target() {
+  // We return false as we don't want to send a stop command for completely open or
+  // close - this is handled by the cover
+  if((this->target_position_ == COVER_OPEN) || (this->target_position_ == COVER_CLOSED))
+    return false;
+
+  switch (this->current_operation) {
+    case COVER_OPERATION_OPENING:
+      return this->position >= this->target_position_;
+    case COVER_OPERATION_CLOSING:
+      return this->position <= this->target_position_;
+    case COVER_OPERATION_IDLE:
+    default:
+      return true;
+  }
+}
+
+void EleroCover::handle_commands(uint32_t now) {
+  if((now - this->last_command_) > ELERO_DELAY_SEND_PACKETS) {
     if(this->commands_to_send_.size() > 0) {
       this->command_.payload[4] = this->commands_to_send_.front();
       if(this->parent_->send_command(&this->command_)) {
@@ -46,7 +83,7 @@ void EleroCover::handle_commands() {
           this->commands_to_send_.pop();
         }
       }
-      this->last_command_ = millis();
+      this->last_command_ = now;
     }
   }
 }
@@ -56,9 +93,12 @@ float EleroCover::get_setup_priority() const { return setup_priority::DATA; }
 cover::CoverTraits EleroCover::get_traits() {
   auto traits = cover::CoverTraits();
   traits.set_supports_stop(true);
-  traits.set_supports_position(false);
+  if((this->open_duration_ > 0) && (this->close_duration_ > 0))
+    traits.set_supports_position(true);
+  else
+    traits.set_supports_position(false);
   traits.set_supports_toggle(false);
-  traits.set_is_assumed_state(false);
+  traits.set_is_assumed_state(true);
   return traits;
 }
 
@@ -117,25 +157,60 @@ void EleroCover::send_command(uint8_t command) {
 void EleroCover::control(const cover::CoverCall &call) {
   if (call.get_stop()) {
     this->send_command(this->command_stop_);
+    this->start_movement(COVER_OPERATION_IDLE);
   }
   if (call.get_position().has_value()) {
     auto pos = *call.get_position();
-    if(pos == COVER_OPEN) {
+    this->target_position_ = pos;
+    if((pos > this->position) || (pos == COVER_OPEN)) {
       ESP_LOGD(TAG, "Sending OPEN command");
       this->send_command(this->command_up_);
-      this->current_operation = COVER_OPERATION_OPENING;
-      this->position = COVER_OPEN;
-      this->movement_start_ = millis();
-      this->publish_state();
-    } else if(pos == COVER_CLOSED) {
+      this->start_movement(COVER_OPERATION_OPENING);
+
+    } else {
       ESP_LOGD(TAG, "Sending CLOSE command");
       this->send_command(this->command_down_);
-      this->current_operation = COVER_OPERATION_CLOSING;
-      this->position = COVER_CLOSED;
-      this->movement_start_ = millis();
-      this->publish_state();
+      this->start_movement(COVER_OPERATION_CLOSING);
     }
   }
+}
+
+void EleroCover::start_movement(CoverOperation dir) {
+  if(dir == this->current_operation)
+    return;
+
+  this->current_operation = dir;
+  this->movement_start_ = millis();
+  this->last_recompute_time_ = millis();
+  this->publish_state();
+}
+
+void EleroCover::recompute_position() {
+  if(this->current_operation == COVER_OPERATION_IDLE)
+    return;
+
+
+  float dir;
+  float action_dur;
+  switch (this->current_operation) {
+    case COVER_OPERATION_OPENING:
+      dir = 1.0f;
+      action_dur = this->open_duration_;
+      break;
+    case COVER_OPERATION_CLOSING:
+      dir = -1.0f;
+      action_dur = this->close_duration_;
+      break;
+    default:
+      return;
+  }
+
+  const uint32_t now = millis();
+  this->position += dir * (now - this->last_recompute_time_) / action_dur;
+  this->position = clamp(this->position, 0.0f, 1.0f);
+
+  this->last_recompute_time_ = now;
+
 }
 
 } // namespace elero

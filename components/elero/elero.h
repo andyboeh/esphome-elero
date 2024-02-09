@@ -31,9 +31,9 @@ static const uint8_t ELERO_STATE_START_MOVING_UP = 0x08;
 static const uint8_t ELERO_STATE_START_MOVING_DOWN = 0x09;
 static const uint8_t ELERO_STATE_MOVING_UP = 0x0a;
 static const uint8_t ELERO_STATE_MOVING_DOWN = 0x0b;
-static const uint8_t ELERO_STATE_STOPPED = 0x0c;
-static const uint8_t ELERO_STATE_TOP_TILT = 0x0d;
-static const uint8_t ELERO_STATE_BOTTOM_TILT = 0x0e;
+static const uint8_t ELERO_STATE_STOPPED = 0x0d;
+static const uint8_t ELERO_STATE_TOP_TILT = 0x0e;
+static const uint8_t ELERO_STATE_BOTTOM_TILT = 0x0f;
 static const uint8_t ELERO_STATE_OFF = 0x0f;
 static const uint8_t ELERO_STATE_ON = 0x10;
 
