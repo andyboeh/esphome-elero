@@ -19,8 +19,14 @@ CONF_COMMAND_UP = "command_up"
 CONF_COMMAND_DOWN = "command_down"
 CONF_COMMAND_STOP = "command_stop"
 CONF_COMMAND_CHECK = "command_check"
+CONF_POLL_INTERVAL = "poll_interval"
 
 EleroCover = elero_ns.class_("EleroCover", cover.Cover, cg.Component)
+
+def poll_interval(value):
+    if value == "never":
+        return 4294967295  # uint32_t max
+    return cv.positive_time_period_milliseconds(value)
 
 CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
     {
@@ -29,6 +35,7 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
         cv.Required(CONF_BLIND_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
         cv.Required(CONF_CHANNEL): cv.int_range(min=0, max=255),
         cv.Required(CONF_REMOTE_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
+        cv.Optional(CONF_POLL_INTERVAL, default="5min"): poll_interval,
         cv.Optional(CONF_OPEN_DURATION, default="0s"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_CLOSE_DURATION, default="0s"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_PAYLOAD_1, default=0x00): cv.hex_int_range(min=0x0, max=0xff),
@@ -65,3 +72,4 @@ async def to_code(config):
     cg.add(var.set_command_down(config[CONF_COMMAND_DOWN]))
     cg.add(var.set_command_check(config[CONF_COMMAND_CHECK]))
     cg.add(var.set_command_stop(config[CONF_COMMAND_STOP]))
+    cg.add(var.set_poll_interval(config[CONF_POLL_INTERVAL]))

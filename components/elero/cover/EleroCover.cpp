@@ -24,7 +24,7 @@ void EleroCover::setup() {
 }
 
 void EleroCover::loop() {
-  uint32_t intvl = ELERO_POLL_INTERVAL;
+  uint32_t intvl = this->poll_intvl_;
   uint32_t now = millis();
   if(this->current_operation != COVER_OPERATION_IDLE) {
     if((now - ELERO_TIMEOUT_MOVEMENT) < this->movement_start_) // do not poll frequently for an extended period of time
@@ -37,6 +37,7 @@ void EleroCover::loop() {
   }
 
   this->handle_commands(now);
+
   if((this->current_operation != COVER_OPERATION_IDLE) && (this->open_duration_ > 0) && (this->close_duration_ > 0)) {
     this->recompute_position();
     if(this->is_at_target()) {

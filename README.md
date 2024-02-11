@@ -43,6 +43,7 @@ cover:
     name: Schlafzimmer
     open_duration: 25s
     close_duration: 22s
+    poll_interval: 5min
     payload_1: 0x00
     payload_2: 0x04
     pck_inf1: 0x6a
@@ -73,6 +74,7 @@ cover:
   * `name`: The name of the cover
   * `open_duration`: For position control, stop the time it takes to open the cover (Optional)
   * `close_duration`: For position control, stop the time it takes to close the cover (Optional)
+  * `poll_interval`: Configure the polling interval for status updates if different from `5min` (Optional)
   * `payload_1`: Configure the first payload byte if different from `0x00` (Optional)
   * `payload_2`: Configure the second payload byte if different from `0x04` (Optional)
   * `pck_inf1`: Configure the first packet info byte if different from `0x6a` (Optional)
