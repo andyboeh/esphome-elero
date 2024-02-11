@@ -55,7 +55,7 @@ void Elero::setup() {
 }
 
 void Elero::flush_and_rx() {
-  ESP_LOGD(TAG, "flush_and_rx");
+  //ESP_LOGD(TAG, "flush_and_rx");
   this->write_cmd(CC1101_SIDLE);
   this->write_cmd(CC1101_SFRX);
   this->write_cmd(CC1101_SFTX);
@@ -145,7 +145,7 @@ void Elero::write_cmd(uint8_t cmd) {
 }
 
 bool Elero::wait_rx() {
-  ESP_LOGD(TAG, "wait_rx");
+  //ESP_LOGD(TAG, "wait_rx");
   uint8_t timeout = 200;
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_RX) && (--timeout != 0)) {
     delay_microseconds_safe(200);
@@ -158,7 +158,7 @@ bool Elero::wait_rx() {
 }
 
 bool Elero::wait_tx() {
-  ESP_LOGD(TAG, "wait_tx");
+  //ESP_LOGD(TAG, "wait_tx");
   uint8_t timeout = 200;
   uint8_t status = this->read_status(CC1101_MARCSTATE);
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_TX) && (--timeout != 0)) {
@@ -172,7 +172,7 @@ bool Elero::wait_tx() {
 }
 
 bool Elero::wait_tx_done() {
-  ESP_LOGD(TAG, "wait_tx_done");
+  //ESP_LOGD(TAG, "wait_tx_done");
   uint8_t timeout = 200;
   
   //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) && (--timeout != 0)) {
@@ -187,10 +187,10 @@ bool Elero::wait_tx_done() {
 }
 
 bool Elero::transmit() {
-  ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
+  //ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
   this->flush_and_rx();
   if(!this->wait_rx()) {
-    ESP_LOGD(TAG, "Error waiting for Rx");
+    //ESP_LOGD(TAG, "Error waiting for Rx");
     return false;
   }
 
@@ -212,7 +212,7 @@ bool Elero::transmit() {
     ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
     return false;
   } else {
-    ESP_LOGD(TAG, "Transmission successful");
+    //ESP_LOGD(TAG, "Transmission successful");
     return true;
   }
 }
@@ -442,7 +442,7 @@ void Elero::register_cover(EleroCover *cover) {
 }
 
 bool Elero::send_command(t_elero_command *cmd) {
-  ESP_LOGD(TAG, "send_command called");
+  //ESP_LOGD(TAG, "send_command called");
   uint16_t code = (0x00 - (cmd->counter * 0x708f)) & 0xffff;
   this->msg_tx_[0] = 0x1d; // message length
   this->msg_tx_[1] = cmd->counter; // message counter

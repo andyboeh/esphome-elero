@@ -32,7 +32,7 @@ void EleroCover::loop() {
   }
 
   if((now > this->poll_offset_) && (now - this->poll_offset_ - this->last_poll_) > intvl) {
-    this->send_command(this->command_check_);
+    this->commands_to_send_.push(this->command_check_);
     this->last_poll_ = now - this->poll_offset_;
   }
 
@@ -41,7 +41,7 @@ void EleroCover::loop() {
   if((this->current_operation != COVER_OPERATION_IDLE) && (this->open_duration_ > 0) && (this->close_duration_ > 0)) {
     this->recompute_position();
     if(this->is_at_target()) {
-      this->send_command(this->command_stop_);
+      this->commands_to_send_.push(this->command_stop_);
       this->current_operation = COVER_OPERATION_IDLE;
     }
 
@@ -75,8 +75,13 @@ void EleroCover::handle_commands(uint32_t now) {
     if(this->commands_to_send_.size() > 0) {
       this->command_.payload[4] = this->commands_to_send_.front();
       if(this->parent_->send_command(&this->command_)) {
-        this->commands_to_send_.pop();
+        this->send_packets_++;
         this->send_retries_ = 0;
+        if(this->send_packets_ >= ELERO_SEND_PACKETS) {
+          this->commands_to_send_.pop();
+          this->send_packets_ = 0;
+          this->increase_counter();
+        }
       } else {
         this->send_retries_++;
         if(this->send_retries_ > ELERO_SEND_RETRIES) {
@@ -146,18 +151,9 @@ void EleroCover::increase_counter() {
     this->command_.counter += 1;
 }
 
-void EleroCover::send_command(uint8_t command) {
-  this->command_.payload[4] = command;
-
-  for(uint8_t i=0; i<ELERO_SEND_PACKETS; i++) {
-    this->commands_to_send_.push(command);
-  }
-  this->increase_counter();
-}
-
 void EleroCover::control(const cover::CoverCall &call) {
   if (call.get_stop()) {
-    this->send_command(this->command_stop_);
+    this->commands_to_send_.push(this->command_stop_);
     this->start_movement(COVER_OPERATION_IDLE);
   }
   if (call.get_position().has_value()) {
@@ -165,12 +161,12 @@ void EleroCover::control(const cover::CoverCall &call) {
     this->target_position_ = pos;
     if((pos > this->position) || (pos == COVER_OPEN)) {
       ESP_LOGD(TAG, "Sending OPEN command");
-      this->send_command(this->command_up_);
+      this->commands_to_send_.push(this->command_up_);
       this->start_movement(COVER_OPERATION_OPENING);
 
     } else {
       ESP_LOGD(TAG, "Sending CLOSE command");
-      this->send_command(this->command_down_);
+      this->commands_to_send_.push(this->command_down_);
       this->start_movement(COVER_OPERATION_CLOSING);
     }
   }

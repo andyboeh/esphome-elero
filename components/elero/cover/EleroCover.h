@@ -45,7 +45,6 @@ class EleroCover : public cover::Cover, public Component {
  protected:
   void control(const cover::CoverCall &call) override;
   void increase_counter();
-  void send_command(uint8_t command);
 
   t_elero_command command_ = {
     .counter = 1,
@@ -67,6 +66,7 @@ class EleroCover : public cover::Cover, public Component {
   uint8_t command_stop_{0x10};
   std::queue<uint8_t> commands_to_send_;
   uint8_t send_retries_{0};
+  uint8_t send_packets_{0};
 };
 
 } // namespace elero
