@@ -112,34 +112,46 @@ cover::CoverTraits EleroCover::get_traits() {
 void EleroCover::set_rx_state(uint8_t state) {
   ESP_LOGD(TAG, "Got state: 0x%02x for blind 0x%02x", state, this->command_.blind_addr);
   float pos = this->position;
+  float current_tilt = this->tilt;
   CoverOperation op = this->current_operation;
 
   switch(state) {
   case ELERO_STATE_TOP:
     pos = COVER_OPEN;
     op = COVER_OPERATION_IDLE;
+    current_tilt = 0.0;
     break;
   case ELERO_STATE_BOTTOM:
     pos = COVER_CLOSED;
     op = COVER_OPERATION_IDLE;
+    current_tilt = 0.0;
     break;
   case ELERO_STATE_START_MOVING_UP:
   case ELERO_STATE_MOVING_UP:
     op = COVER_OPERATION_OPENING;
+    current_tilt = 0.0;
     break;
   case ELERO_STATE_START_MOVING_DOWN:
   case ELERO_STATE_MOVING_DOWN:
     op = COVER_OPERATION_CLOSING;
+    current_tilt = 0.0;
+    break;
+  case ELERO_STATE_TILT:
+    op = COVER_OPERATION_IDLE;
+    current_tilt = 1.0;
     break;
   case ELERO_STATE_STOPPED:
     op = COVER_OPERATION_IDLE;
+    current_tilt = 0.0;
     break;
   default:
     op = COVER_OPERATION_IDLE;
+    current_tilt = 0.0;
   }
 
-  if((pos != this->position) || (op != this->current_operation)) {
+  if((pos != this->position) || (op != this->current_operation) || (current_tilt != this->tilt)) {
     this->position = pos;
+    this->tilt = current_tilt;
     this->current_operation = op;
     this->publish_state();
   }
