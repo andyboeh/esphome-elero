@@ -31,11 +31,13 @@ class EleroCover : public cover::Cover, public Component {
   void set_command_down(uint8_t cmd) { this->command_down_ = cmd; }
   void set_command_stop(uint8_t cmd) { this->command_stop_ = cmd; }
   void set_command_check(uint8_t cmd) { this->command_check_ = cmd; }
+  void set_command_tilt(uint8_t cmd) { this->command_tilt_ = cmd; }
   void set_poll_offset(uint32_t offset) { this->poll_offset_ = offset; }
   void set_close_duration(uint32_t dur) { this->close_duration_ = dur; }
   void set_open_duration(uint32_t dur) { this->open_duration_ = dur; }
   void set_poll_interval(uint32_t intvl) { this->poll_intvl_ = intvl; }
   uint32_t get_blind_address() { return this->command_.blind_addr; }
+  void set_supports_tilt(bool tilt) { this->supports_tilt_ = tilt; }
   void set_rx_state(uint8_t state);
   void handle_commands(uint32_t now);
   void recompute_position();
@@ -60,10 +62,12 @@ class EleroCover : public cover::Cover, public Component {
   uint32_t last_recompute_time_{0};
   uint32_t poll_intvl_{0};
   float target_position_{0};
+  bool supports_tilt_{false};
   uint8_t command_up_{0x20};
   uint8_t command_down_{0x40};
   uint8_t command_check_{0x00};
   uint8_t command_stop_{0x10};
+  uint8_t command_tilt_{0x24};
   std::queue<uint8_t> commands_to_send_;
   uint8_t send_retries_{0};
   uint8_t send_packets_{0};

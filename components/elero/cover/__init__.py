@@ -19,7 +19,9 @@ CONF_COMMAND_UP = "command_up"
 CONF_COMMAND_DOWN = "command_down"
 CONF_COMMAND_STOP = "command_stop"
 CONF_COMMAND_CHECK = "command_check"
+CONF_COMMAND_TILT = "command_tilt"
 CONF_POLL_INTERVAL = "poll_interval"
+CONF_SUPPORTS_TILT = "supports_tilt"
 
 EleroCover = elero_ns.class_("EleroCover", cover.Cover, cg.Component)
 
@@ -47,6 +49,8 @@ CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
         cv.Optional(CONF_COMMAND_DOWN, default=0x40): cv.hex_int_range(min=0x0, max=0xff),
         cv.Optional(CONF_COMMAND_STOP, default=0x10): cv.hex_int_range(min=0x0, max=0xff),
         cv.Optional(CONF_COMMAND_CHECK, default=0x00): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_COMMAND_TILT, default=0x24): cv.hex_int_range(min=0x0, max=0xff),
+        cv.Optional(CONF_SUPPORTS_TILT, default=False): cv.boolean,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -72,4 +76,6 @@ async def to_code(config):
     cg.add(var.set_command_down(config[CONF_COMMAND_DOWN]))
     cg.add(var.set_command_check(config[CONF_COMMAND_CHECK]))
     cg.add(var.set_command_stop(config[CONF_COMMAND_STOP]))
+    cg.add(var.set_command_tilt(config[CONF_COMMAND_TILT]))
     cg.add(var.set_poll_interval(config[CONF_POLL_INTERVAL]))
+    cg.add(var.set_supports_tilt(config[CONF_SUPPORTS_TILT]))

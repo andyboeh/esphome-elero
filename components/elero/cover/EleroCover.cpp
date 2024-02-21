@@ -105,6 +105,7 @@ cover::CoverTraits EleroCover::get_traits() {
     traits.set_supports_position(false);
   traits.set_supports_toggle(false);
   traits.set_is_assumed_state(true);
+  traits.set_supports_tilt(this->supports_tilt_);
   return traits;
 }
 
@@ -163,11 +164,23 @@ void EleroCover::control(const cover::CoverCall &call) {
       ESP_LOGD(TAG, "Sending OPEN command");
       this->commands_to_send_.push(this->command_up_);
       this->start_movement(COVER_OPERATION_OPENING);
-
+      // Reset tilt state on movement
+      this->tilt = 0.0;
     } else {
       ESP_LOGD(TAG, "Sending CLOSE command");
       this->commands_to_send_.push(this->command_down_);
       this->start_movement(COVER_OPERATION_CLOSING);
+      // Reset tilt state on movement
+      this->tilt = 0.0;
+    }
+  }
+  if (call.get_tilt().has_value()) {
+    auto tilt = *call.get_tilt();
+    if(tilt > 0) {
+      this->commands_to_send_.push(this->command_tilt_);
+      this->tilt = 1.0;
+    } else {
+      this->tilt = 0.0;
     }
   }
 }
