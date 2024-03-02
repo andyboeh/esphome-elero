@@ -71,6 +71,7 @@ class EleroCover : public cover::Cover, public Component {
   std::queue<uint8_t> commands_to_send_;
   uint8_t send_retries_{0};
   uint8_t send_packets_{0};
+  cover::CoverOperation last_operation_{cover::COVER_OPERATION_OPENING};
 };
 
 } // namespace elero

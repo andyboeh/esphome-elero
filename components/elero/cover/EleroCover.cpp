@@ -103,7 +103,7 @@ cover::CoverTraits EleroCover::get_traits() {
     traits.set_supports_position(true);
   else
     traits.set_supports_position(false);
-  traits.set_supports_toggle(false);
+  traits.set_supports_toggle(true);
   traits.set_is_assumed_state(true);
   traits.set_supports_tilt(this->supports_tilt_);
   return traits;
@@ -166,24 +166,15 @@ void EleroCover::increase_counter() {
 
 void EleroCover::control(const cover::CoverCall &call) {
   if (call.get_stop()) {
-    this->commands_to_send_.push(this->command_stop_);
     this->start_movement(COVER_OPERATION_IDLE);
   }
   if (call.get_position().has_value()) {
     auto pos = *call.get_position();
     this->target_position_ = pos;
     if((pos > this->position) || (pos == COVER_OPEN)) {
-      ESP_LOGD(TAG, "Sending OPEN command");
-      this->commands_to_send_.push(this->command_up_);
       this->start_movement(COVER_OPERATION_OPENING);
-      // Reset tilt state on movement
-      this->tilt = 0.0;
     } else {
-      ESP_LOGD(TAG, "Sending CLOSE command");
-      this->commands_to_send_.push(this->command_down_);
       this->start_movement(COVER_OPERATION_CLOSING);
-      // Reset tilt state on movement
-      this->tilt = 0.0;
     }
   }
   if (call.get_tilt().has_value()) {
@@ -195,9 +186,42 @@ void EleroCover::control(const cover::CoverCall &call) {
       this->tilt = 0.0;
     }
   }
+  if (call.get_toggle().has_value()) {
+    if(this->current_operation != COVER_OPERATION_IDLE) {
+      this->start_movement(COVER_OPERATION_IDLE);
+    } else {
+      if(this->position == COVER_CLOSED || this->last_operation_ == COVER_OPERATION_CLOSING) {
+        this->target_position_ = COVER_OPEN;
+        this->start_movement(COVER_OPERATION_OPENING);
+      } else {
+        this->target_position_ = COVER_CLOSED;
+        this->start_movement(COVER_OPERATION_CLOSING);
+      }
+    }
+  }
 }
 
 void EleroCover::start_movement(CoverOperation dir) {
+  switch(dir) {
+    case COVER_OPERATION_OPENING:
+      ESP_LOGD(TAG, "Sending OPEN command");
+      this->commands_to_send_.push(this->command_up_);
+      // Reset tilt state on movement
+      this->tilt = 0.0;
+      this->last_operation_ = COVER_OPERATION_OPENING;
+    break;
+    case COVER_OPERATION_CLOSING:
+      ESP_LOGD(TAG, "Sending CLOSE command");
+      this->commands_to_send_.push(this->command_down_);
+      // Reset tilt state on movement
+      this->tilt = 0.0;
+      this->last_operation_ = COVER_OPERATION_CLOSING;
+    break;
+    case COVER_OPERATION_IDLE:
+      this->commands_to_send_.push(this->command_stop_);
+    break;
+  }
+
   if(dir == this->current_operation)
     return;
 
