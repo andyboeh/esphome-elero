@@ -108,9 +108,9 @@ You need to have an existing remote control configure and connected to to your b
     - `payload_1` = `0x00`
     - `payload_2` = `0x04`
     - `command_check` = `0x00`
-  3. Press the UP, DOWN and STOP buttons consecutively and check the log again. The very last byte of the payload doesn't matter, the second-last byte is the command to send. An exemplary UP command looks like this:
+  3. Press the UP, DOWN and STOP buttons consecutively and check the log again. The very last byte of the payload doesn't matter, the fifth byte is the command to send. An exemplary UP command (`0x20`) looks like this:
   ```
-    len=29, cnt=46, typ=0x6a, typ2=0x00, hop=0a, syst=01, chl=09, src=0x908bef, bwd=0x908bef, fwd=0x908bef, #dst=01, dst=e039c9, rssi=-84.0, lqi=47, crc= 1, payload=[0x00 0x04 0x00 0x00 0x00 0x00 0x00 0x00 0x20 0xc0]
+    len=29, cnt=46, typ=0x6a, typ2=0x00, hop=0a, syst=01, chl=09, src=0x908bef, bwd=0x908bef, fwd=0x908bef, #dst=01, dst=e039c9, rssi=-84.0, lqi=47, crc= 1, payload=[0x00 0x04 0x00 0x00 0x20 0x00 0x00 0x00 0x00 0x40]
   ```
   4. Add all required information to the configuration file and check. Your blinds should start moving.
 
