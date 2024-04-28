@@ -112,6 +112,8 @@ You need to have an existing remote control configure and connected to to your b
   ```
     len=29, cnt=46, typ=0x6a, typ2=0x00, hop=0a, syst=01, chl=09, src=0x908bef, bwd=0x908bef, fwd=0x908bef, #dst=01, dst=e039c9, rssi=-84.0, lqi=47, crc= 1, payload=[0x00 0x04 0x00 0x00 0x20 0x00 0x00 0x00 0x00 0x40]
   ```
+  You are looking for packets with `len=29`. Those with `len=27` are something else (don't know what).
+
   4. Add all required information to the configuration file and check. Your blinds should start moving.
 
 ## Position Control

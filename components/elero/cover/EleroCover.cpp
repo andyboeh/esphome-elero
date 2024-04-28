@@ -83,8 +83,10 @@ void EleroCover::handle_commands(uint32_t now) {
           this->increase_counter();
         }
       } else {
+        ESP_LOGD(TAG, "Retry #%d for blind 0x%02x", this->send_retries_, this->command_.blind_addr);
         this->send_retries_++;
         if(this->send_retries_ > ELERO_SEND_RETRIES) {
+          ESP_LOGD(TAG, "Giving up.");
           this->send_retries_ = 0;
           this->commands_to_send_.pop();
         }
@@ -201,6 +203,9 @@ void EleroCover::control(const cover::CoverCall &call) {
   }
 }
 
+// FIXME: Most of this should probably be moved to the
+// handle_commands function to only publish a new state
+// if at least the transmission was successful
 void EleroCover::start_movement(CoverOperation dir) {
   switch(dir) {
     case COVER_OPERATION_OPENING:

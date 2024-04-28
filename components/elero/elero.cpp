@@ -160,7 +160,7 @@ bool Elero::wait_rx() {
 bool Elero::wait_tx() {
   //ESP_LOGD(TAG, "wait_tx");
   uint8_t timeout = 200;
-  uint8_t status = this->read_status(CC1101_MARCSTATE);
+
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_TX) && (--timeout != 0)) {
     delay_microseconds_safe(200);
   }
