@@ -212,7 +212,7 @@ bool Elero::transmit() {
     ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
     return false;
   } else {
-    //ESP_LOGD(TAG, "Transmission successful");
+    ESP_LOGD(TAG, "Transmission successful");
     return true;
   }
 }
