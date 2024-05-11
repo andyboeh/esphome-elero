@@ -15,6 +15,8 @@ The current code can transmit and simulate the TempoTel 2 that I have. Since som
 
 Please be advised that this is very early development make, features might not work as intended!
 
+If you like my work, consider sponsoring this project via [Github Sponsors](https://github.com/sponsors/andyboeh) or by acquiring one of my [Amazon Wishlist](https://www.amazon.de/hz/wishlist/ls/ROO2X0G63PCT?ref_=wl_share) items.
+
 ## Configuration
 
 See the provided [example file](example.yaml) for the minimum configuration required to configure a blind. Some optional parameters can also be set that allow the tuning of your system:
