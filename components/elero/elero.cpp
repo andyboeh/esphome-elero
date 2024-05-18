@@ -155,7 +155,7 @@ bool Elero::wait_rx() {
   
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for RX");
+  ESP_LOGD(TAG, "Timed out waiting for RX: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
@@ -168,7 +168,7 @@ bool Elero::wait_idle() {
   
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for Idle");
+  ESP_LOGD(TAG, "Timed out waiting for Idle: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
@@ -182,7 +182,7 @@ bool Elero::wait_tx() {
 
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for TX");
+  ESP_LOGD(TAG, "Timed out waiting for TX: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
@@ -197,7 +197,7 @@ bool Elero::wait_tx_done() {
 
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for TX Done");
+  ESP_LOGD(TAG, "Timed out waiting for TX Done: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
