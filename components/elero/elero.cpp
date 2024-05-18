@@ -15,21 +15,23 @@ void Elero::loop() {
     //ESP_LOGD(TAG, "loop says \"received\"");
     this->received_ = false;
     uint8_t len = this->read_status(CC1101_RXBYTES);
-    if(len & 0x7F && !(len & 0x80)) { // No overflow and bytes available
-      if(len > 64) {
+    if(len & 0x7F) { // bytes available
+      if(len > CC1101_FIFO_LENGTH) {
         ESP_LOGD(TAG, "Received more bytes than FIFO length - wtf?");
-        this->flush_and_rx();
+        this->read_buf(CC1101_RXFIFO, this->msg_rx_, CC1101_FIFO_LENGTH);
       } else {
         this->read_buf(CC1101_RXFIFO, this->msg_rx_, len);
-        //std::string data = format_hex(this->msg_rx_, len);
-        //ESP_LOGD(TAG, "Received: 0x%s", data.c_str());
-        // Sanity check
-        if(this->msg_rx_[0] + 3 == len) {
-          this->interprete_msg();
-        }
+      }
+      //std::string data = format_hex(this->msg_rx_, len);
+      //ESP_LOGD(TAG, "Received: 0x%s", data.c_str());
+      // Sanity check
+      if(this->msg_rx_[0] + 3 <= (len & 0x7f)) {
+        this->interpret_msg();
       }
     }
-    //this->flush_and_rx();
+    if(len & 0x80) { // overflow
+      this->flush_and_rx();
+    }
   }
 }
 
@@ -403,7 +405,7 @@ void Elero::msg_encode(uint8_t* msg) {
   encode_nibbles(msg);
 }
 
-void Elero::interprete_msg() {
+void Elero::interpret_msg() {
   uint8_t length = this->msg_rx_[0];
   uint8_t cnt = this->msg_rx_[1];
   uint8_t typ = this->msg_rx_[2];

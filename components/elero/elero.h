@@ -81,7 +81,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   uint8_t read_status(uint8_t addr);
   void read_buf(uint8_t addr, uint8_t *buf, uint8_t len);
   void flush_and_rx();
-  void interprete_msg();
+  void interpret_msg();
   void register_cover(EleroCover *cover);
   bool send_command(t_elero_command *cmd);
   
