@@ -204,7 +204,7 @@ bool Elero::wait_tx_done() {
 bool Elero::transmit() {
   //ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
   //this->flush_and_rx();
-  this->send_cmd(CC1101_SRX);
+  this->write_cmd(CC1101_SRX);
   if(!this->wait_rx()) {
     return false;
   }
