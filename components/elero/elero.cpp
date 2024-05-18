@@ -18,6 +18,7 @@ void Elero::loop() {
     if(len & 0x7F && !(len & 0x80)) { // No overflow and bytes available
       if(len > 64) {
         ESP_LOGD(TAG, "Received more bytes than FIFO length - wtf?");
+        this->flush_and_rx();
       } else {
         this->read_buf(CC1101_RXFIFO, this->msg_rx_, len);
         //std::string data = format_hex(this->msg_rx_, len);
@@ -28,7 +29,7 @@ void Elero::loop() {
         }
       }
     }
-    this->flush_and_rx();
+    //this->flush_and_rx();
   }
 }
 
@@ -57,6 +58,7 @@ void Elero::setup() {
 void Elero::flush_and_rx() {
   //ESP_LOGD(TAG, "flush_and_rx");
   this->write_cmd(CC1101_SIDLE);
+  this->wait_idle();
   this->write_cmd(CC1101_SFRX);
   this->write_cmd(CC1101_SFTX);
   this->write_cmd(CC1101_SRX);
@@ -157,6 +159,19 @@ bool Elero::wait_rx() {
   return false;
 }
 
+bool Elero::wait_idle() {
+  //ESP_LOGD(TAG, "wait_idle");
+  uint8_t timeout = 200;
+  while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_IDLE) && (--timeout != 0)) {
+    delay_microseconds_safe(200);
+  }
+  
+  if(timeout > 0)
+    return true;
+  ESP_LOGD(TAG, "Timed out waiting for Idle");
+  return false;
+}
+
 bool Elero::wait_tx() {
   //ESP_LOGD(TAG, "wait_tx");
   uint8_t timeout = 200;
@@ -188,9 +203,9 @@ bool Elero::wait_tx_done() {
 
 bool Elero::transmit() {
   //ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
-  this->flush_and_rx();
+  //this->flush_and_rx();
+  this->send_cmd(CC1101_SRX);
   if(!this->wait_rx()) {
-    //ESP_LOGD(TAG, "Error waiting for Rx");
     return false;
   }
 
@@ -207,9 +222,10 @@ bool Elero::transmit() {
   }
 
   uint8_t bytes = this->read_status(CC1101_TXBYTES) & 0x7f;
-  this->flush_and_rx();
+  //this->flush_and_rx();
   if(bytes != 0) {
     ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
+    this->flush_and_rx();
     return false;
   } else {
     ESP_LOGD(TAG, "Transmission successful");

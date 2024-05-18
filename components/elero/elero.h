@@ -75,6 +75,7 @@ class Elero : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARIT
   bool wait_rx();
   bool wait_tx();
   bool wait_tx_done();
+  bool wait_idle();
   bool transmit();
   uint8_t read_reg(uint8_t addr);
   uint8_t read_status(uint8_t addr);
