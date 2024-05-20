@@ -12,25 +12,23 @@ static const uint8_t flash_table_decode[] = {0x0a, 0x03, 0x01, 0x0c, 0x0d, 0x07,
 
 void Elero::loop() {
   if(this->received_) {
-    //ESP_LOGD(TAG, "loop says \"received\"");
+    ESP_LOGVV(TAG, "loop says \"received\"");
     this->received_ = false;
     uint8_t len = this->read_status(CC1101_RXBYTES);
     if(len & 0x7F) { // bytes available
       if(len > CC1101_FIFO_LENGTH) {
-        ESP_LOGD(TAG, "Received more bytes than FIFO length - wtf?");
+        ESP_LOGV(TAG, "Received more bytes than FIFO length - wtf?");
         this->read_buf(CC1101_RXFIFO, this->msg_rx_, CC1101_FIFO_LENGTH);
       } else {
         this->read_buf(CC1101_RXFIFO, this->msg_rx_, len);
       }
-      //std::string data = format_hex(this->msg_rx_, len);
-      //ESP_LOGD(TAG, "Received: 0x%s", data.c_str());
       // Sanity check
       if(this->msg_rx_[0] + 3 <= (len & 0x7f)) {
         this->interpret_msg();
       }
     }
     if(len & 0x80) { // overflow
-      ESP_LOGD(TAG, "Rx overflow, flushing FIFOs");
+      ESP_LOGV(TAG, "Rx overflow, flushing FIFOs");
       this->flush_and_rx();
     }
   }
@@ -59,7 +57,7 @@ void Elero::setup() {
 }
 
 void Elero::flush_and_rx() {
-  //ESP_LOGD(TAG, "flush_and_rx");
+  ESP_LOGVV(TAG, "flush_and_rx");
   this->write_cmd(CC1101_SIDLE);
   this->wait_idle();
   this->write_cmd(CC1101_SFRX);
@@ -150,7 +148,7 @@ void Elero::write_cmd(uint8_t cmd) {
 }
 
 bool Elero::wait_rx() {
-  //ESP_LOGD(TAG, "wait_rx");
+  ESP_LOGVV(TAG, "wait_rx");
   uint8_t timeout = 200;
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_RX) && (--timeout != 0)) {
     delay_microseconds_safe(200);
@@ -158,12 +156,12 @@ bool Elero::wait_rx() {
   
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for RX: 0x%02x", this->read_status(CC1101_MARCSTATE));
+  ESP_LOGE(TAG, "Timed out waiting for RX: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
 bool Elero::wait_idle() {
-  //ESP_LOGD(TAG, "wait_idle");
+  ESP_LOGVV(TAG, "wait_idle");
   uint8_t timeout = 200;
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_IDLE) && (--timeout != 0)) {
     delay_microseconds_safe(200);
@@ -171,12 +169,12 @@ bool Elero::wait_idle() {
   
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for Idle: 0x%02x", this->read_status(CC1101_MARCSTATE));
+  ESP_LOGE(TAG, "Timed out waiting for Idle: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
 bool Elero::wait_tx() {
-  //ESP_LOGD(TAG, "wait_tx");
+  ESP_LOGVV(TAG, "wait_tx");
   uint8_t timeout = 200;
 
   while ((this->read_status(CC1101_MARCSTATE) != CC1101_MARCSTATE_TX) && (--timeout != 0)) {
@@ -185,12 +183,12 @@ bool Elero::wait_tx() {
 
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for TX: 0x%02x", this->read_status(CC1101_MARCSTATE));
+  ESP_LOGE(TAG, "Timed out waiting for TX: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
 bool Elero::wait_tx_done() {
-  //ESP_LOGD(TAG, "wait_tx_done");
+  ESP_LOGVV(TAG, "wait_tx_done");
   uint8_t timeout = 200;
   
   //while (((this->read_status(CC1101_TXBYTES) & 0x7f) != 0) && (--timeout != 0)) {
@@ -200,12 +198,12 @@ bool Elero::wait_tx_done() {
 
   if(timeout > 0)
     return true;
-  ESP_LOGD(TAG, "Timed out waiting for TX Done: 0x%02x", this->read_status(CC1101_MARCSTATE));
+  ESP_LOGE(TAG, "Timed out waiting for TX Done: 0x%02x", this->read_status(CC1101_MARCSTATE));
   return false;
 }
 
 bool Elero::transmit() {
-  //ESP_LOGD(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
+  ESP_LOGVV(TAG, "transmit called for %d data bytes", this->msg_tx_[0]);
   //this->flush_and_rx();
   this->write_cmd(CC1101_SRX);
   if(!this->wait_rx()) {
@@ -225,13 +223,12 @@ bool Elero::transmit() {
   }
 
   uint8_t bytes = this->read_status(CC1101_TXBYTES) & 0x7f;
-  //this->flush_and_rx();
   if(bytes != 0) {
-    ESP_LOGD(TAG, "Error transferring, %d bytes left in buffer", bytes);
+    ESP_LOGE(TAG, "Error transferring, %d bytes left in buffer", bytes);
     this->flush_and_rx();
     return false;
   } else {
-    ESP_LOGD(TAG, "Transmission successful");
+    ESP_LOGV(TAG, "Transmission successful");
     return true;
   }
 }
@@ -461,7 +458,7 @@ void Elero::register_cover(EleroCover *cover) {
 }
 
 bool Elero::send_command(t_elero_command *cmd) {
-  //ESP_LOGD(TAG, "send_command called");
+  ESP_LOGVV(TAG, "send_command called");
   uint16_t code = (0x00 - (cmd->counter * 0x708f)) & 0xffff;
   this->msg_tx_[0] = 0x1d; // message length
   this->msg_tx_[1] = cmd->counter; // message counter
@@ -491,7 +488,7 @@ bool Elero::send_command(t_elero_command *cmd) {
   uint8_t *payload = &this->msg_tx_[22];
   msg_encode(payload);
 
-  ESP_LOGD(TAG, "send: len=%02d, cnt=%02d, typ=0x%02x, typ2=0x%02x, hop=%02x, syst=%02x, chl=%02d, src=0x%02x%02x%02x, bwd=0x%02x%02x%02x, fwd=0x%02x%02x%02x, #dst=%02d, dst=0x%02x%02x%02x, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", this->msg_tx_[0], this->msg_tx_[1], this->msg_tx_[2], this->msg_tx_[3], this->msg_tx_[4], this->msg_tx_[5], this->msg_tx_[6], this->msg_tx_[7], this->msg_tx_[8], this->msg_tx_[9], this->msg_tx_[10], this->msg_tx_[11], this->msg_tx_[12], this->msg_tx_[13], this->msg_tx_[14], this->msg_tx_[15], this->msg_tx_[16], this->msg_tx_[17], this->msg_tx_[18], this->msg_tx_[19], this->msg_tx_[20], this->msg_tx_[21], this->msg_tx_[22], this->msg_tx_[23], this->msg_tx_[24], this->msg_tx_[25], this->msg_tx_[26], this->msg_tx_[27], this->msg_tx_[28], this->msg_tx_[29]);
+  ESP_LOGV(TAG, "send: len=%02d, cnt=%02d, typ=0x%02x, typ2=0x%02x, hop=%02x, syst=%02x, chl=%02d, src=0x%02x%02x%02x, bwd=0x%02x%02x%02x, fwd=0x%02x%02x%02x, #dst=%02d, dst=0x%02x%02x%02x, payload=[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]", this->msg_tx_[0], this->msg_tx_[1], this->msg_tx_[2], this->msg_tx_[3], this->msg_tx_[4], this->msg_tx_[5], this->msg_tx_[6], this->msg_tx_[7], this->msg_tx_[8], this->msg_tx_[9], this->msg_tx_[10], this->msg_tx_[11], this->msg_tx_[12], this->msg_tx_[13], this->msg_tx_[14], this->msg_tx_[15], this->msg_tx_[16], this->msg_tx_[17], this->msg_tx_[18], this->msg_tx_[19], this->msg_tx_[20], this->msg_tx_[21], this->msg_tx_[22], this->msg_tx_[23], this->msg_tx_[24], this->msg_tx_[25], this->msg_tx_[26], this->msg_tx_[27], this->msg_tx_[28], this->msg_tx_[29]);
   return transmit();
 }
 
