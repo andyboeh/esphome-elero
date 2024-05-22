@@ -16,11 +16,11 @@ void Elero::loop() {
     this->received_ = false;
     uint8_t len = this->read_status(CC1101_RXBYTES);
     if(len & 0x7F) { // bytes available
-      if(len > CC1101_FIFO_LENGTH) {
+      if((len & 0x7F) > CC1101_FIFO_LENGTH) {
         ESP_LOGV(TAG, "Received more bytes than FIFO length - wtf?");
         this->read_buf(CC1101_RXFIFO, this->msg_rx_, CC1101_FIFO_LENGTH);
       } else {
-        this->read_buf(CC1101_RXFIFO, this->msg_rx_, len);
+        this->read_buf(CC1101_RXFIFO, this->msg_rx_, (len & 0x7f));
       }
       // Sanity check
       if(this->msg_rx_[0] + 3 <= (len & 0x7f)) {
@@ -405,6 +405,12 @@ void Elero::msg_encode(uint8_t* msg) {
 
 void Elero::interpret_msg() {
   uint8_t length = this->msg_rx_[0];
+  // Sanity check
+  if(length > ELERO_MAX_PACKET_SIZE) {
+    ESP_LOGE(TAG, "Received invalid packet: too long (%d)", length);
+    return;
+  }
+
   uint8_t cnt = this->msg_rx_[1];
   uint8_t typ = this->msg_rx_[2];
   uint8_t typ2 = this->msg_rx_[3];
@@ -424,6 +430,13 @@ void Elero::interpret_msg() {
     dests_len = this->msg_rx_[16];
     dst = this->msg_rx_[17];
   }
+
+  // Sanity check
+  if(dests_len + 15 > CC1101_FIFO_LENGTH) {
+    ESP_LOGE(TAG, "Received invalid packet: dests_len too long (%d)", dests_len);
+    return;
+  }
+
   uint8_t payload1 = this->msg_rx_[17 + dests_len];
   uint8_t payload2 = this->msg_rx_[18 + dests_len];
   uint8_t crc = this->msg_rx_[length + 2] >> 7;
