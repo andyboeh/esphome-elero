@@ -43,6 +43,7 @@ void EleroCover::loop() {
     if(this->is_at_target()) {
       this->commands_to_send_.push(this->command_stop_);
       this->current_operation = COVER_OPERATION_IDLE;
+      this->target_position_ = COVER_OPEN;
     }
 
     // Publish position every second
