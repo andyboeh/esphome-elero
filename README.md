@@ -1,3 +1,7 @@
+# Looking for a new maintainer
+
+This project is looking for a new maintainer. After having invested way too much time in remote-controlling my blinds, I was finally able to run proper cables to all of them and to implement a centralised control system. The code for driving wired blinds, especially the RolTop-J series, is available [here](https://github.com/andyboeh/esphome-elero_wired).
+
 # Elero Remote Control Component for ESPHome
 
 This project is heavily based on the work of two other people:
