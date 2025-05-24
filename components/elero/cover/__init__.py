@@ -30,9 +30,8 @@ def poll_interval(value):
         return 4294967295  # uint32_t max
     return cv.positive_time_period_milliseconds(value)
 
-CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
+CONFIG_SCHEMA = cover.cover_schema(EleroCover).extend(
     {
-        cv.GenerateID(): cv.declare_id(EleroCover),
         cv.GenerateID(CONF_ELERO_ID): cv.use_id(elero),
         cv.Required(CONF_BLIND_ADDRESS): cv.hex_int_range(min=0x0, max=0xffffff),
         cv.Required(CONF_CHANNEL): cv.int_range(min=0, max=255),
